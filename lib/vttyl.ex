@@ -15,8 +15,7 @@ defmodule Vttyl do
   @doc since: "0.1.0"
   @spec parse(String.t()) :: Enumerable.t()
   def parse(content) do
-    content
-    |> String.splitter("\n")
+    Regex.split(~r"\n\n", content, include_captures: true)
     |> Decode.parse()
   end
 
@@ -29,18 +28,21 @@ defmodule Vttyl do
   @spec parse_stream(Enumerable.t()) :: Enumerable.t()
   def parse_stream(content) do
     content
-    |> Stream.transform("", &next_line/2)
+    |> Stream.transform("", &next_part/2)
     |> Decode.parse()
   end
 
-  defp next_line(chunk, acc) do
-    case String.split(<<acc::binary, chunk::binary>>, "\n") do
+  defp next_part(chunk, acc) do
+    chunk = <<acc::binary, chunk::binary>> |> String.replace("\r\n", "\n")
+
+    Regex.split(~r"\n\n", chunk, include_captures: true)
+    |> case do
       [] ->
         {[], ""}
 
-      lines ->
-        {acc, lines} = List.pop_at(lines, -1)
-        {lines, acc}
+      parts ->
+        # {acc, lines} = List.pop_at(lines, -1) |> IO.inspect()
+        {parts, acc}
     end
   end
 

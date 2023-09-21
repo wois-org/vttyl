@@ -6,54 +6,59 @@ defmodule Vttyl.Decode do
   def parse(enum_content) do
     enum_content
     |> Stream.map(fn line -> Regex.replace(~r/#.*/, line, "") end)
-    |> Stream.map(&String.trim/1)
-    |> Stream.reject(&(&1 in ["", "WEBVTT"]))
-    |> Stream.chunk_while(%Part{}, &parse_chunk/2, &parse_chunk_after/1)
-    |> Stream.filter(&full_chunk?/1)
+    |> Stream.chunk_while("", &parse_chunk/2, &parse_chunk_after/1)
+    |> Stream.map(&to_part/1)
+    |> Stream.reject(fn %Part{text: text} -> text == "WEBVTT" end)
   end
 
   defp parse_chunk(line, acc) do
-    acc =
+    (acc <> line)
+    |> String.split("\n\n")
+    |> case do
+      [prev, next] -> {:cont, prev, next}
+      [prev] -> {:cont, prev}
+    end
+  end
+
+  defp parse_chunk_after(acc) do
+    acc
+    |> String.split("\n\n")
+    |> case do
+      [prev, next] -> {:cont, prev, next}
+      [prev] -> {:cont, prev, ""}
+    end
+  end
+
+  defp to_part(part_string) do
+    part_string
+    |> String.split("\n")
+    |> Enum.reduce(%Part{}, fn line, acc ->
       cond do
-        Regex.match?(~r/^\d+$/, line) ->
+        part?(line) ->
           %Part{acc | part: String.to_integer(line)}
 
-        not is_nil(acc.part) and timestamps?(line) ->
+        timestamps?(line) ->
           {start_ts, end_ts} = parse_timestamps(line)
-
           %Part{acc | start: start_ts, end: end_ts}
 
-        # Text content should be on one line and the other stuff should have appeared
-        not is_nil(acc.part) and not is_nil(acc.start) and not is_nil(acc.end) and line != "" ->
-          {voice, text} = parse_text(line)
+        line != "" ->
+          {voice, text} = parse_line(line, acc.text)
+
           %Part{acc | text: text, voice: voice}
 
         true ->
           acc
       end
-
-    if full_chunk?(acc) do
-      {:cont, acc, %Part{}}
-    else
-      {:cont, acc}
-    end
-  end
-
-  defp parse_chunk_after(acc) do
-    if full_chunk?(acc) do
-      {:cont, acc, %Part{}}
-    else
-      {:cont, acc}
-    end
-  end
-
-  defp full_chunk?(%Part{part: part, start: start, end: ts_end, text: text}) do
-    not is_nil(part) and not is_nil(start) and not is_nil(ts_end) and not is_nil(text)
+    end)
   end
 
   @ts_pattern ~S"(?:(\d{2,}):)?(\d{2}):(\d{2})\.(\d{3})"
   @line_regex ~r/#{@ts_pattern} --> #{@ts_pattern}/
   @ts_regex ~r/#{@ts_pattern}/
+
+  defp part?(line) do
+    Regex.match?(~r/^\d+$/, line)
+  end
 
   # 00:00:00.000 --> 00:01:01.000
   defp timestamps?(line) do
@@ -61,13 +66,24 @@ defmodule Vttyl.Decode do
   end
 
   @annotation_space_regex ~r/[ \t]/
-  defp parse_text("<v" <> line) do
+  defp parse_line("<v" <> line, acc_text) do
     [voice, text] = String.split(line, ">", parts: 2)
     [_, voice] = String.split(voice, @annotation_space_regex, parts: 2)
-    {voice, text}
+
+    {voice, text |> parse_text(acc_text)}
   end
 
-  defp parse_text(text), do: {nil, text}
+  defp parse_line(line, acc_text) do
+    {nil, line |> parse_text(acc_text)}
+  end
+
+  defp parse_text(text, acc_text) when acc_text |> is_binary() do
+    "#{acc_text}\n #{text}"
+  end
+
+  defp parse_text(text, _) do
+    text
+  end
 
   defp parse_timestamps(line) do
     line

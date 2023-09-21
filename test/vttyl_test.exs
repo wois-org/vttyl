@@ -41,7 +41,13 @@ defmodule VttylTest do
 
   describe "parse/1" do
     test "success" do
-      parsed = "small.vtt" |> get_vtt_file() |> File.read!() |> Vttyl.parse() |> Enum.into([])
+      parsed =
+        "small.vtt"
+        |> get_vtt_file()
+        |> File.read!()
+        |> Vttyl.parse()
+        |> Enum.into([])
+
       assert parsed == @expected_result
     end
   end
@@ -90,6 +96,56 @@ defmodule VttylTest do
         |> Enum.into([])
 
       assert ["Esme", "Mary", "Esme F", "Mary"] == parsed
+    end
+
+    test "no parts multiline" do
+      assert result:
+               [
+                 %Vttyl.Part{
+                   start: 1000,
+                   end: 4000,
+                   text: "- Never drink liquid nitrogen.",
+                   part: nil,
+                   voice: nil
+                 },
+                 %Vttyl.Part{
+                   start: 5000,
+                   end: 9000,
+                   text: "- It will perforate your stomach.\n - You could die.",
+                   part: nil,
+                   voice: nil
+                 }
+               ] =
+                 "no_pt.vtt"
+                 |> get_vtt_file()
+                 |> File.stream!([], 2048)
+                 |> Vttyl.parse_stream()
+                 |> Enum.into([])
+    end
+
+    test "no parts multiline (small amount of bytes)" do
+      assert result:
+               [
+                 %Vttyl.Part{
+                   start: 1000,
+                   end: 4000,
+                   text: "- Never drink liquid nitrogen.",
+                   part: nil,
+                   voice: nil
+                 },
+                 %Vttyl.Part{
+                   start: 5000,
+                   end: 9000,
+                   text: "- It will perforate your stomach.\n - You could die.",
+                   part: nil,
+                   voice: nil
+                 }
+               ] =
+                 "no_pt.vtt"
+                 |> get_vtt_file()
+                 |> File.stream!([], 12)
+                 |> Vttyl.parse_stream()
+                 |> Enum.into([])
     end
   end
 
