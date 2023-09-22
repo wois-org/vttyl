@@ -8,7 +8,9 @@ defmodule Vttyl.Decode do
     |> Stream.map(fn line -> Regex.replace(~r/#.*/, line, "") end)
     |> Stream.chunk_while("", &parse_chunk/2, &parse_chunk_after/1)
     |> Stream.map(&to_part/1)
-    |> Stream.reject(fn %Part{text: text} -> text == "WEBVTT" end)
+    |> Stream.reject(fn %Part{text: text, start: ts_start, end: ts_end} ->
+      is_nil(text) or is_nil(ts_start) or is_nil(ts_end)
+    end)
   end
 
   defp parse_chunk(line, acc) do
