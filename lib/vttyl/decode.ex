@@ -40,8 +40,12 @@ defmodule Vttyl.Decode do
           %Part{acc | part: String.to_integer(line)}
 
         timestamps?(line) ->
-          {start_ts, end_ts} = parse_timestamps(line)
-          %Part{acc | start: start_ts, end: end_ts}
+          line
+          |> parse_timestamps()
+          |> case do
+            {start_ts, end_ts} -> %Part{acc | start: start_ts, end: end_ts}
+            _ -> acc
+          end
 
         line != "" ->
           {voice, text} = parse_line(line, acc.text)
