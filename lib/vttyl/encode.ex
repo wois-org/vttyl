@@ -13,7 +13,11 @@ defmodule Vttyl.Encode do
         part.text
       end
 
-    Enum.join([part.part, ts, text], "\n")
+    {type, part.part}
+    |> case do
+      {:vtt, nil} -> Enum.join([ts, text], "\n")
+      {_, pt} -> Enum.join([pt, ts, text], "\n")
+    end
   end
 
   @hour_ms 3_600_000

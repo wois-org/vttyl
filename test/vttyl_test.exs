@@ -169,6 +169,23 @@ defmodule VttylTest do
       assert make_vtt(1, "00:01.000", "00:10.000", "Hello world") == Vttyl.encode_vtt(parts)
     end
 
+    test "without part no", %{parts: _parts} do
+      parts = [
+        %Part{start: 1000, end: 10_000, text: "Hello world"},
+        %Part{start: 10_000, end: 20_000, text: "Hello world again"}
+      ]
+
+      assert """
+      WEBVTT
+
+      00:01.000 --> 00:10.000
+      Hello world
+
+      00:10.000 --> 00:20.000
+      Hello world again
+      """ == Vttyl.encode_vtt(parts)
+    end
+
     @tag start: 100_000_000
     @tag end: 100_100_001
     test "large numbers", %{parts: parts} do
