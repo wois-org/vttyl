@@ -50,18 +50,21 @@ defmodule Vttyl do
   Encodes a list of parts into a vtt file.
   """
   @doc since: "0.4.0"
-  @spec encode_vtt([Part.t()]) :: String.t()
-  def encode_vtt(parts) do
-    Enum.join(["WEBVTT" | Enum.map(parts, &Encode.encode_part(&1, :vtt))], "\n\n") <> "\n"
+  @spec encode_vtt([Part.t()], [term]) :: String.t()
+  def encode_vtt(parts, opts \\ []) do
+    opts = opts |> Keyword.put(:type, :vtt)
+    Enum.join(["WEBVTT" | Enum.map(parts, &Encode.encode_part(&1, opts))], "\n\n") <> "\n"
   end
 
   @doc """
   Encodes a list of parts into a srt file.
   """
   @doc since: "0.4.0"
-  @spec encode_srt([Part.t()]) :: String.t()
-  def encode_srt(parts) do
-    Enum.map(parts, &Encode.encode_part(&1, :srt))
+  @spec encode_srt([Part.t()], [term]) :: String.t()
+  def encode_srt(parts, opts \\ []) do
+    opts = opts |> Keyword.put(:type, :srt)
+
+    Enum.map(parts, &Encode.encode_part(&1, opts))
     |> Enum.join("\n\n")
     |> Kernel.<>("\n")
   end
@@ -72,8 +75,9 @@ defmodule Vttyl do
   This is currently deprecated use encode_vtt/1 or encode_srt/1 instead
   """
   @doc since: "0.3.0"
-  @spec encode([Part.t()]) :: String.t()
-  def encode(parts) do
-    Enum.join(["WEBVTT" | Enum.map(parts, &Encode.encode_part(&1, :vtt))], "\n\n") <> "\n"
+  @spec encode([Part.t()], [term]) :: String.t()
+  def encode(parts, opts \\ []) do
+    opts = opts |> Keyword.put(:type, :srt)
+    Enum.join(["WEBVTT" | Enum.map(parts, &Encode.encode_part(&1, opts))], "\n\n") <> "\n"
   end
 end

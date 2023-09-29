@@ -2,9 +2,11 @@ defmodule Vttyl.Encode do
   @moduledoc false
   alias Vttyl.Part
 
-  @spec encode_part(Part.t(), :vtt | :srt) :: String.t()
-  def encode_part(part, type) do
-    ts = fmt_timestamp(part.start, type) <> " --> " <> fmt_timestamp(part.end, type)
+  @spec encode_part(Part.t(), keyword) :: String.t()
+  def encode_part(part, opts \\ []) do
+    type = opts |> Keyword.get(:type)
+
+    ts = fmt_timestamp(part.start, opts) <> " --> " <> fmt_timestamp(part.end, opts)
 
     text =
       if type == :vtt && part.voice do
@@ -22,13 +24,15 @@ defmodule Vttyl.Encode do
 
   @hour_ms 3_600_000
   @minute_ms 60_000
-  defp fmt_timestamp(milliseconds, type) do
+  defp fmt_timestamp(milliseconds, opts) do
+    type = opts |> Keyword.get(:type)
+    force_ts_hours = opts |> Keyword.get(:force_ts_hours, false)
     {hours, ms_wo_hrs} = mod(milliseconds, @hour_ms)
     {minutes, ms_wo_mins} = mod(ms_wo_hrs, @minute_ms)
 
     # Lop off hours if there aren't any
     hr_and_min =
-      if hours <= 0 and type == :vtt do
+      if hours <= 0 and type == :vtt and !force_ts_hours do
         prefix_fmt(minutes)
       else
         [hours, minutes]

@@ -176,14 +176,31 @@ defmodule VttylTest do
       ]
 
       assert """
-      WEBVTT
+             WEBVTT
 
-      00:01.000 --> 00:10.000
-      Hello world
+             00:01.000 --> 00:10.000
+             Hello world
 
-      00:10.000 --> 00:20.000
-      Hello world again
-      """ == Vttyl.encode_vtt(parts)
+             00:10.000 --> 00:20.000
+             Hello world again
+             """ == Vttyl.encode_vtt(parts)
+    end
+
+    test "force timestamp hours", %{parts: _parts} do
+      parts = [
+        %Part{start: 1000, end: 10_000, text: "Hello world"},
+        %Part{start: 10_000, end: 20_000, text: "Hello world again"}
+      ]
+
+      assert """
+             WEBVTT
+
+             00:00:01.000 --> 00:00:10.000
+             Hello world
+
+             00:00:10.000 --> 00:00:20.000
+             Hello world again
+             """ == Vttyl.encode_vtt(parts, force_ts_hours: true)
     end
 
     @tag start: 100_000_000
